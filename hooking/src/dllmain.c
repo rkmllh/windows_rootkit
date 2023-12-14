@@ -1,3 +1,4 @@
+// dllmain.cpp : Definisce il punto di ingresso per l'applicazione DLL.
 #include "pch.h"
 #include <time.h>
 #include <stdio.h>
@@ -33,10 +34,6 @@
 */
 typedef IMAGE_IMPORT_DESCRIPTOR     IMPORT_DIRECTORY_TABLE;
 
-typedef BOOL(*ptr)(LPCSTR);
-
-STATIC READONLY BYTE* dll_name = NULL;
-
 PROCEDURE write_import_address_table(READONLY LPVOID base, READONLY IMAGE_OPTIONAL_HEADER* image_optional_header);
 
 BOOL APIENTRY DllMain( HMODULE hModule,
@@ -48,6 +45,7 @@ BOOL APIENTRY DllMain( HMODULE hModule,
     {
     case DLL_PROCESS_ATTACH:
 	{
+		MessageBoxA(0, "Injected", "Injected", 0);
 		VOID* base = GetModuleHandle(NULL);
 		IMAGE_OPTIONAL_HEADER* ioh = (IMAGE_OPTIONAL_HEADER*)IMAGEOPTIONALHEADEROFFSET(base);
 		write_import_address_table(base, ioh);
@@ -61,15 +59,19 @@ BOOL APIENTRY DllMain( HMODULE hModule,
     return TRUE;
 }
 
-FARPROC hooked(LPCSTR x)
+FARPROC hooked(HMODULE dll, LPCSTR x)
 {
-	return GetProcAddress(LoadLibraryA((LPCSTR)dll_name), x);
+	// Manage cases
+	if (strcmp(x, "DeleteFile"))
+	{
+
+	}
+	return GetProcAddress(dll, x);
 }
 
 PROCEDURE write_import_address_table(READONLY LPVOID base, READONLY IMAGE_OPTIONAL_HEADER* image_optional_header)
 {
 	DWORD oldProtect = 0;
-	ptr pointer = NULL;
 	time_t import_time = 0;
 	struct tm* tm_import_time = NULL;
 
@@ -82,6 +84,7 @@ PROCEDURE write_import_address_table(READONLY LPVOID base, READONLY IMAGE_OPTION
 	IMAGE_IMPORT_BY_NAME* procedure = NULL;
 
 	READONLY CHAR* proc_name = NULL;
+	READONLY BYTE* dll_name = NULL;
 
 	ULONGLONG proc_address = 0;
 
